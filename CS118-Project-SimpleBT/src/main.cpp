@@ -85,41 +85,9 @@ main(int argc, char** argv)
         port = port.substr(0, port.find("/"));
         pos = host.find(":");
         host = host.substr(0, pos);
-        //std::cout << host << " HOST " << port << "PORT \n";
 
-        // becker (client port stuff)
-        /*int sfd = socket(AF_INET, SOCK_STREAM, 0);
-        
-        int yes = 1;
-        if (setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1)
-        {
-                perror("setsockopt");
-                return 1;
-        }
-
-        struct sockaddr_in addr;
-        addr.sin_family = AF_INET;
-        addr.sin_port = htons(std::atoi(argv[1]));
-        addr.sin_addr.s_addr = inet_addr("127.0.0.1");
-        memset(addr.sin_zero, '\0', sizeof(addr.sin_zero));
-
-        if (bind(sfd, (struct sockaddr*)&addr, sizeof(addr)) == -1)
-        {
-                perror("bind");
-                return 2;
-        }       
-
-        if (listen(sfd, 1) == -1)
-        {
-                perror("listen");
-                return 3;
-        }
-        
-        //struct sockaddr_in clientA;
-        //socklen_t clientASize;
-        //int clientSfd = accepted(sfd, (struct sockaddr*)&clientA, &clientASize);
-        */
         ///////
+
 
         HttpRequest req;
         req.setHost(host);
@@ -128,7 +96,8 @@ main(int argc, char** argv)
         req.setPath(location+"?info_hash=" + encodedHash+"&peer_id="+encodedPeer+"&port="+argv[1]+"&uploaded=111&downloaded=1112&left=300&event=started"); //this needs to be the query
         req.setVersion("1.0");
         req.addHeader("Accept-Language", "en-US");
-        std::size_t reqLen = req.getTotalLength();
+        
+	std::size_t reqLen = req.getTotalLength();
         char* buf = new char[reqLen];
         req.formatRequest(buf);
 
@@ -161,17 +130,14 @@ main(int argc, char** argv)
            // convert the IP to a string and print it:
           char ipstr[INET_ADDRSTRLEN] = {'\0'};
           inet_ntop(p->ai_family, &(ipv4->sin_addr), ipstr, sizeof(ipstr));
-          // std::cout << "  " << ipstr << std::endl;
-          //std::cout << "  " << ipstr << " is the resolv ed ip"<< std::endl;
-          
 
           freeaddrinfo(res); // free the linked list
          int sockfd = socket(AF_INET, SOCK_STREAM, 0);          
-        struct sockaddr_in serverAddr;
-  serverAddr.sin_family = AF_INET;
-  serverAddr.sin_port = htons(std::stoi(port));     // short, network byte order
-  serverAddr.sin_addr.s_addr = inet_addr(ipstr);
-  // connect to the server
+         struct sockaddr_in serverAddr;
+         serverAddr.sin_family = AF_INET;
+         serverAddr.sin_port = htons(std::stoi(port));     // short, network byte order
+         serverAddr.sin_addr.s_addr = inet_addr(ipstr);
+         // connect to the server
   if (connect(sockfd, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) == -1) {
     perror("connect");
     return 2;
@@ -187,12 +153,7 @@ main(int argc, char** argv)
 
   char ipstr1[INET_ADDRSTRLEN] = {'\0'};
   inet_ntop(clientAddr.sin_family, &clientAddr.sin_addr, ipstr1, sizeof(ipstr1));
-  //std::cout << "Set up a connection from: " << ipstr1 << ":" <<
-    //ntohs(clientAddr.sin_port) << std::endl;
 
-
-  // send/receive data to/from connection
- // bool isEnd = false;
   std::string input;
   char buf1[20000] = {0};
   std::stringstream ss;
@@ -206,29 +167,81 @@ main(int argc, char** argv)
       return 4;
     }
 
-
     if (recv(sockfd, buf1, 20000, 0) == -1) {
       perror("recv");
       return 5;
     }
 
-  close(sockfd);
+    close(sockfd);
     HttpResponse hres;
     hres.parseResponse(buf1, 20000);
-    //std::cout << hres.getStatusMsg() << std::endl;
     char* body = strstr(buf1, "\r\n\r\n")+4;
     std::string bodys = body;
     std::istringstream iss(bodys);
     sbt::bencoding::Dictionary theD;
     theD.wireDecode(iss);
     TrackerResponse tr;
-        tr.decode(theD);
+    tr.decode(theD);
     std::vector<PeerInfo> pi = tr.getPeers();
-        for (PeerInfo i : pi)
-        {
-                std::cout << i.ip + ":" << i.port << std::endl;
-        } 
-    //std::cout << "test: " << bodys << std::endl;
+    
+
+    for (PeerInfo i : pi)
+    {
+        std::cout << i.ip + ":" << i.port << std::endl;
+    } 
+    sleep(tr.getInterval());
+
+    // Send/receive more things
+    while(true) {
+	HttpRequest secReq; //secondary requests
+
+	secReq.setHost(host);
+	secReq.setPort(std::stoi(port));
+	secReq.setMethod(HttpRequest::GET);
+	secReq.setPath(location+"?info_hash=" + encodedHash + "&peer_id=" + encodedPeer + "&port=" + argv[1] + "&uploaded=111&downloaded=1112&left=300");
+	secReq.setVersion("1.0");
+	secReq.addHeader("Accept-Language", "en-US");
+	
+	char* secReqBuf = new char[reqLen];
+	secReq.formatRequest(secReqBuf);
+
+	int secSockfd = socket(AF_INET, SOCK_STREAM, 0);
+
+	if(connect(secSockfd, (struct sockaddr *) &serverAddr, sizeof(serverAddr)) == -1) {
+	// error
+	return 2;
+}
+
+	if(getsockname(secSockfd, (struct sockaddr *) &clientAddr, &clientAddrLen) == -1) {
+		// error
+	}
+
+	if(send(secSockfd, secReqBuf, secReq.getTotalLength(), 0) == -1) {
+		// error
+	}	
+	char secReqRecBuf[20000];
+	memset(secReqRecBuf, '\0', sizeof(secReqRecBuf));
+
+	if(recv(secSockfd, secReqRecBuf, 20000, 0) == -1) {
+		// error
+	}
+
+	close(secSockfd);
+	HttpResponse secHRes;
+	if(secReqRecBuf[0] != 0)
+	    secHRes.parseResponse(secReqRecBuf, 20000);
+	body = strstr(secReqRecBuf, "\r\n\r\n")+4;
+	bodys = body;
+	std::istringstream iss2(bodys);
+	sbt::bencoding::Dictionary elD;
+	elD.wireDecode(iss2);
+	TrackerResponse tr2;
+	tr2.decode(elD);
+	sleep(tr2.getInterval());
+
+   }
+
+
     // Initialise the client.
     sbt::Client client(argv[1], argv[2]);
   }
