@@ -58,118 +58,112 @@ main(int argc, char** argv)
       return 1;
     }
     
-        std::ifstream ifs (argv[2], std::ifstream::in);
+    std::ifstream ifs (argv[2], std::ifstream::in);
 
-        MetaInfo mi;
-        mi.wireDecode(ifs);
-        ConstBufferPtr cbp = mi.getHash();
-        std::vector<uint8_t> v = *cbp;
+    MetaInfo mi;
+    mi.wireDecode(ifs);
+    ConstBufferPtr cbp = mi.getHash();
+    std::vector<uint8_t> v = *cbp;
 
-        std::vector<uint8_t> vp;
-        uint8_t it = 0;
-        while (it < PEERLEN) {
-                vp.push_back(it++);
-        }
+    std::vector<uint8_t> vp;
+    uint8_t it = 0;
+    while (it < PEERLEN) {
+        vp.push_back(it++);
+    }
 
-        std::string encodedHash = url::encode(cbp->get(), v.size());
-        std::string encodedPeer = url::encode(&vp.front(), vp.size());
-        //std:: << "encodedHash: " + encodedHash << std::endl;
-        //std::cout << "encodedPeer: " + encodedPeer << std::endl;
+    std::string encodedHash = url::encode(cbp->get(), v.size());
+    std::string encodedPeer = url::encode(&vp.front(), vp.size());
         
-        //std::cout << mi.getAnnounce() << " announcement\n";
-        std::size_t pos = mi.getAnnounce().find("//");
-        std::string host = mi.getAnnounce().substr(pos+2);
-        std::string port = host.substr(host.find(":")+1);
-        std::string location = port;
-        location = location.substr(port.find("/"));
-        port = port.substr(0, port.find("/"));
-        pos = host.find(":");
-        host = host.substr(0, pos);
+    std::size_t pos = mi.getAnnounce().find("//");
+    std::string host = mi.getAnnounce().substr(pos+2);
+    std::string port = host.substr(host.find(":")+1);
+    std::string location = port;
+    location = location.substr(port.find("/"));
+    port = port.substr(0, port.find("/"));
+    pos = host.find(":");
+    host = host.substr(0, pos);
 
         ///////
 
 
-        HttpRequest req;
-        req.setHost(host);
-        req.setPort(std::stoi(port));
-        req.setMethod(HttpRequest::GET);
-        req.setPath(location+"?info_hash=" + encodedHash+"&peer_id="+encodedPeer+"&port="+argv[1]+"&uploaded=111&downloaded=1112&left=300&event=started"); //this needs to be the query
-        req.setVersion("1.0");
-        req.addHeader("Accept-Language", "en-US");
-        
-	std::size_t reqLen = req.getTotalLength();
-        char* buf = new char[reqLen];
-        req.formatRequest(buf);
+    HttpRequest req;
+    req.setHost(host);
+    req.setPort(std::stoi(port));
+    req.setMethod(HttpRequest::GET);
+    req.setPath(location+"?info_hash=" + encodedHash+"&peer_id="+encodedPeer+"&port="+argv[1]+"&uploaded=111&downloaded=1112&left=300&event=started"); //this needs to be the query
+    req.setVersion("1.0");
+    req.addHeader("Accept-Language", "en-US");
+     
+    std::size_t reqLen = req.getTotalLength();
+    char* buf = new char[reqLen];
+    req.formatRequest(buf);
 
         
         //resolve host name to IP
-         struct addrinfo hints;
-          struct addrinfo* res;
+    struct addrinfo hints;
+    struct addrinfo* res;
 
 
           // prepare hints
-          memset(&hints, 0, sizeof(hints));
-          hints.ai_family = AF_INET; // IPv4
-          hints.ai_socktype = SOCK_STREAM;
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_INET; // IPv4
+    hints.ai_socktype = SOCK_STREAM;
 
           // get address
-          int status = 0;
-          if ((status = getaddrinfo(host.c_str(), port.c_str(), &hints, &res)) != 0) {
-            std::cerr << "getaddrinfo: " << gai_strerror(status) << std::endl;
-            return 2;
-          }
+    int status = 0;
+    if ((status = getaddrinfo(host.c_str(), port.c_str(), &hints, &res)) != 0) {
+        std::cerr << "getaddrinfo: " << gai_strerror(status) << std::endl;
+        return 2;
+    }
 
-          //std::cout << "IP addresses for " << host << std::endl;
 
-         struct addrinfo* p = res;
-         if(p==0)
-                return 2;
-            // convert address to IPv4 address
-          struct sockaddr_in* ipv4 = (struct sockaddr_in*)p->ai_addr;
+    struct addrinfo* p = res;
+    if(p==0)
+        return 2;
+    // convert address to IPv4 address
+    struct sockaddr_in* ipv4 = (struct sockaddr_in*)p->ai_addr;
 
-           // convert the IP to a string and print it:
-          char ipstr[INET_ADDRSTRLEN] = {'\0'};
-          inet_ntop(p->ai_family, &(ipv4->sin_addr), ipstr, sizeof(ipstr));
+    // convert the IP to a string and print it:
+    char ipstr[INET_ADDRSTRLEN] = {'\0'};
+    inet_ntop(p->ai_family, &(ipv4->sin_addr), ipstr, sizeof(ipstr));
 
-          freeaddrinfo(res); // free the linked list
-         int sockfd = socket(AF_INET, SOCK_STREAM, 0);          
-         struct sockaddr_in serverAddr;
-         serverAddr.sin_family = AF_INET;
-         serverAddr.sin_port = htons(std::stoi(port));     // short, network byte order
-         serverAddr.sin_addr.s_addr = inet_addr(ipstr);
-         // connect to the server
-  if (connect(sockfd, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) == -1) {
-    perror("connect");
-    return 2;
-  }
+    freeaddrinfo(res); // free the linked list
+    int sockfd = socket(AF_INET, SOCK_STREAM, 0);          
+    struct sockaddr_in serverAddr;
+    serverAddr.sin_family = AF_INET;
+    serverAddr.sin_port = htons(std::stoi(port));     // short, network byte order
+    serverAddr.sin_addr.s_addr = inet_addr(ipstr);
+    // connect to the server
+    if (connect(sockfd, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) == -1) {
+        perror("connect");
+        return 2;
+    }
 
-  struct sockaddr_in clientAddr;
+    struct sockaddr_in clientAddr;
 
-  socklen_t clientAddrLen = sizeof(clientAddr);
-  if (getsockname(sockfd, (struct sockaddr *)&clientAddr, &clientAddrLen) == -1) {
-    perror("getsockname");
-    return 3;
-  }
+    socklen_t clientAddrLen = sizeof(clientAddr);
+    if (getsockname(sockfd, (struct sockaddr *)&clientAddr, &clientAddrLen) == -1) {
+        perror("getsockname");
+        return 3;
+    }
 
-  char ipstr1[INET_ADDRSTRLEN] = {'\0'};
-  inet_ntop(clientAddr.sin_family, &clientAddr.sin_addr, ipstr1, sizeof(ipstr1));
+    char ipstr1[INET_ADDRSTRLEN] = {'\0'};
+    inet_ntop(clientAddr.sin_family, &clientAddr.sin_addr, ipstr1, sizeof(ipstr1));
 
-  std::string input;
-  char buf1[20000] = {0};
-  std::stringstream ss;
-
+    std::string input;
+    char buf1[20000] = {0};
+    std::stringstream ss;
 
     memset(buf1, '\0', sizeof(buf1));
-
-    
+ 
     if (send(sockfd, buf, req.getTotalLength(), 0) == -1) {
-      perror("send");
-      return 4;
+        perror("send");
+        return 4;
     }
 
     if (recv(sockfd, buf1, 20000, 0) == -1) {
-      perror("recv");
-      return 5;
+        perror("recv");
+        return 5;
     }
 
     close(sockfd);
@@ -184,17 +178,18 @@ main(int argc, char** argv)
     tr.decode(theD);
     std::vector<PeerInfo> pi = tr.getPeers();
     
-
     for (PeerInfo i : pi)
     {
         std::cout << i.ip + ":" << i.port << std::endl;
     } 
     sleep(tr.getInterval());
 
-    // Send/receive more things
+    // Send/receive secondary requests
     while(true) {
-	HttpRequest secReq; //secondary requests
+	HttpRequest secReq; //secondary request
 
+	// set-up secondary request to same specifications as
+	// first request minus the event
 	secReq.setHost(host);
 	secReq.setPort(std::stoi(port));
 	secReq.setMethod(HttpRequest::GET);
@@ -207,28 +202,37 @@ main(int argc, char** argv)
 
 	int secSockfd = socket(AF_INET, SOCK_STREAM, 0);
 
+	// connect
 	if(connect(secSockfd, (struct sockaddr *) &serverAddr, sizeof(serverAddr)) == -1) {
-	// error
-	return 2;
-}
+	    perror("connect");
+	    return 2;
+        }
 
+	// get socket name
 	if(getsockname(secSockfd, (struct sockaddr *) &clientAddr, &clientAddrLen) == -1) {
-		// error
+	    perror("getsockname");
+            return 3;
 	}
 
+	// send request
 	if(send(secSockfd, secReqBuf, secReq.getTotalLength(), 0) == -1) {
-		// error
+	    perror("send");
+            return 4;
 	}	
+
+	// receive response
 	char secReqRecBuf[20000];
 	memset(secReqRecBuf, '\0', sizeof(secReqRecBuf));
-
 	if(recv(secSockfd, secReqRecBuf, 20000, 0) == -1) {
-		// error
+	    perror("receive");
+	    return 5;
 	}
 
 	close(secSockfd);
+
+	// decipher data from response
 	HttpResponse secHRes;
-	if(secReqRecBuf[0] != 0)
+	if(secReqRecBuf[0] != 0) 
 	    secHRes.parseResponse(secReqRecBuf, 20000);
 	body = strstr(secReqRecBuf, "\r\n\r\n")+4;
 	bodys = body;
@@ -237,7 +241,10 @@ main(int argc, char** argv)
 	elD.wireDecode(iss2);
 	TrackerResponse tr2;
 	tr2.decode(elD);
+	
+	// sleep interval specified by tracker response
 	sleep(tr2.getInterval());
+	
 
    }
 
