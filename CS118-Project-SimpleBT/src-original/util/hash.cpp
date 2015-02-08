@@ -19,27 +19,54 @@
  * \author Yingdi Yu <yingdi@cs.ucla.edu>
  */
 
-#include "client.hpp"
+#include "hash.hpp"
+#include <iostream>
+#include <string>
 
-int
-main(int argc, char** argv)
+
+namespace sbt {
+namespace util {
+
+std::string
+sha1(const std::string& input)
 {
-  try
-  {
-    // Check command line arguments.
-    if (argc != 3)
-    {
-      std::cerr << "Usage: simple-bt <port> <torrent_file>\n";
-      return 1;
-    }
+  using namespace CryptoPP;
 
-    // Initialise the client.
-    sbt::Client client(argv[1], argv[2]);
-  }
-  catch (std::exception& e)
-  {
-    std::cerr << "exception: " << e.what() << "\n";
-  }
+  std::string result;
+  SHA1 hash;
 
-  return 0;
+  StringSource(input, true, new HashFilter(hash, new StringSink(result)));
+
+  return result;
 }
+
+std::vector<uint8_t>
+sha1(const std::vector<uint8_t>& input)
+{
+  using namespace CryptoPP;
+
+  std::vector<uint8_t> result(20, 0);
+  SHA1 hash;
+
+  StringSource(&input.front(), input.size(),
+               true, new HashFilter(hash, new ArraySink(&result.front(), 20)));
+
+  return result;
+}
+
+ConstBufferPtr
+sha1(ConstBufferPtr input)
+{
+  using namespace CryptoPP;
+
+  auto result = make_shared<Buffer>(20, 0);
+  SHA1 hash;
+
+  StringSource(input->buf(), input->size(),
+               true, new HashFilter(hash, new ArraySink(result->buf(), 20)));
+
+  return result;
+}
+
+} // namespace util
+} // namespace sbt

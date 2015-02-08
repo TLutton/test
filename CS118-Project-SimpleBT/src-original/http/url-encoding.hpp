@@ -19,27 +19,23 @@
  * \author Yingdi Yu <yingdi@cs.ucla.edu>
  */
 
-#include "client.hpp"
+#ifndef SBT_HTTP_URL_ENCODING_HPP
+#define SBT_HTTP_URL_ENCODING_HPP
 
-int
-main(int argc, char** argv)
-{
-  try
-  {
-    // Check command line arguments.
-    if (argc != 3)
-    {
-      std::cerr << "Usage: simple-bt <port> <torrent_file>\n";
-      return 1;
-    }
+#include "../common.hpp"
+#include "../util/buffer.hpp"
+#include <string>
 
-    // Initialise the client.
-    sbt::Client client(argv[1], argv[2]);
-  }
-  catch (std::exception& e)
-  {
-    std::cerr << "exception: " << e.what() << "\n";
-  }
+namespace sbt {
+namespace url {
 
-  return 0;
-}
+std::string
+encode(const uint8_t* buf, size_t size);
+
+ConstBufferPtr
+decode(const std::string& input);
+
+} // namespace url
+} // namespace sbt
+
+#endif // SBT_HTTP_URL_ENCODING_HPP

@@ -19,27 +19,22 @@
  * \author Yingdi Yu <yingdi@cs.ucla.edu>
  */
 
-#include "client.hpp"
+#ifndef SBT_CLIENT_HPP
+#define SBT_CLIENT_HPP
 
-int
-main(int argc, char** argv)
+#include "common.hpp"
+#include "meta-info.hpp"
+namespace sbt {
+
+class Client
 {
-  try
+public:
+  Client(const std::string& port, const std::string& torrent)
   {
-    // Check command line arguments.
-    if (argc != 3)
-    {
-      std::cerr << "Usage: simple-bt <port> <torrent_file>\n";
-      return 1;
-    }
-
-    // Initialise the client.
-    sbt::Client client(argv[1], argv[2]);
+       
   }
-  catch (std::exception& e)
-  {
-    std::cerr << "exception: " << e.what() << "\n";
-  }
+};
 
-  return 0;
-}
+} // namespace sbt
+
+#endif // SBT_CLIENT_HPP

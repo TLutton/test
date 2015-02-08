@@ -19,27 +19,25 @@
  * \author Yingdi Yu <yingdi@cs.ucla.edu>
  */
 
-#include "client.hpp"
+#ifndef SBT_UTIL_HASH_HPP
+#define SBT_UTIL_HASH_HPP
 
-int
-main(int argc, char** argv)
-{
-  try
-  {
-    // Check command line arguments.
-    if (argc != 3)
-    {
-      std::cerr << "Usage: simple-bt <port> <torrent_file>\n";
-      return 1;
-    }
+#include "cryptopp.hpp"
+#include "buffer.hpp"
 
-    // Initialise the client.
-    sbt::Client client(argv[1], argv[2]);
-  }
-  catch (std::exception& e)
-  {
-    std::cerr << "exception: " << e.what() << "\n";
-  }
+namespace sbt {
+namespace util {
 
-  return 0;
-}
+std::string
+sha1(const std::string& input);
+
+std::vector<uint8_t>
+sha1(const std::vector<uint8_t>& input);
+
+ConstBufferPtr
+sha1(ConstBufferPtr input);
+
+} // namespace util
+} // namespace sbt
+
+#endif // SBT_UTIL_HASH_HPP

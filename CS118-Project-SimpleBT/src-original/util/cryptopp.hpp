@@ -19,27 +19,17 @@
  * \author Yingdi Yu <yingdi@cs.ucla.edu>
  */
 
-#include "client.hpp"
 
-int
-main(int argc, char** argv)
-{
-  try
-  {
-    // Check command line arguments.
-    if (argc != 3)
-    {
-      std::cerr << "Usage: simple-bt <port> <torrent_file>\n";
-      return 1;
-    }
+#ifndef SBT_CRYPTOPP_HPP
+#define SBT_CRYPTOPP_HPP
 
-    // Initialise the client.
-    sbt::Client client(argv[1], argv[2]);
-  }
-  catch (std::exception& e)
-  {
-    std::cerr << "exception: " << e.what() << "\n";
-  }
+// suppress CryptoPP warnings
+#pragma GCC system_header
+#pragma clang system_header
 
-  return 0;
-}
+#include <cryptopp/sha.h>
+#include <cryptopp/hex.h>
+#include <cryptopp/files.h>
+#include <cryptopp/filters.h>
+
+#endif // SBT_CRYPTOPP_HPP
